@@ -1,88 +1,99 @@
 #![allow(clippy::unused_async)]
 use axum::http::StatusCode;
-use loco_rs::prelude::*;
+use loco_rs::{controller::extractor::validate::QueryValidateWithMessage, prelude::*};
 
 use crate::{
 	dtos::{
 		common::Page,
-		quotes::{CreateQuote, QuoteDto, UpdateQuote},
+		quotes::{CreatedQuoteResponse, ListParams, QuoteDto, QuoteParams},
 	},
 	models::_entities::quotes::{ActiveModel, Column, Entity},
 };
 
+const PAGE_SIZE_LIMIT: u64 = 67;
+
+// GET /quotes?author=&page=&page_size=
 #[debug_handler]
 async fn list(
 	State(ctx): State<AppContext>,
-	Query(pagination): Query<query::PaginationQuery>,
+	QueryValidateWithMessage(params): QueryValidateWithMessage<ListParams>,
 ) -> Result<Json<Page<QuoteDto>>> {
-	let res = query::paginate(
-		&ctx.db,
-		Entity::find().order_by_asc(Column::Id),
-		None,
-		&pagination,
-	)
-	.await?;
+	// use consistent id instead of uuid for stable pagination
+	let mut select = Entity::find().order_by_asc(Column::Id);
+	if let Some(author) = params.author.as_deref().filter(|a| !a.is_empty()) {
+		select = select.filter(Column::Author.eq(author));
+	}
+
+	let pagination = query::PaginationQuery {
+		page: params.pagination.page.max(1),
+		page_size: params.pagination.page_size.clamp(1, PAGE_SIZE_LIMIT),
+	};
+	let res = query::paginate(&ctx.db, select, None, &pagination).await?;
 
 	Ok(Json(Page::from_query(res)))
 }
 
+// GET /quotes/{id}
 #[debug_handler]
-async fn get_one(State(ctx): State<AppContext>, Path(id): Path<i64>) -> Result<Response> {
-	let Some(model) = Entity::find_by_id(id).one(&ctx.db).await? else {
-		return not_found();
-	};
-	Ok(Json(QuoteDto::from(model)).into_response())
+async fn get_one(
+	State(ctx): State<AppContext>,
+	Path(id): Path<Uuid>,
+) -> Result<Json<QuoteDto>> {
+	let quote = Entity::find_by_pid(&ctx.db, id).await?;
+	Ok(Json(QuoteDto::from(quote)))
 }
 
+// POST /quotes
 #[debug_handler]
 async fn create(
 	State(ctx): State<AppContext>,
-	Json(params): Json<CreateQuote>,
+	JsonValidateWithMessage(params): JsonValidateWithMessage<QuoteParams>,
 ) -> Result<Response> {
 	let item = ActiveModel {
-		pid: Set(params.pid),
 		author: Set(params.author),
 		text: Set(params.text),
 		..Default::default()
 	};
+
 	let item = item.insert(&ctx.db).await?;
 
-	Ok((StatusCode::CREATED, Json(QuoteDto::from(item))).into_response())
+	Ok((
+		StatusCode::CREATED,
+		Json(CreatedQuoteResponse { id: item.pid }),
+	)
+		.into_response())
 }
 
 #[debug_handler]
 async fn update(
 	State(ctx): State<AppContext>,
-	Path(id): Path<i64>,
-	Json(params): Json<UpdateQuote>,
-) -> Result<Response> {
-	let Some(model) = Entity::find_by_id(id).one(&ctx.db).await? else {
-		return not_found();
-	};
-
-	let mut item = model.into_active_model();
-	item.pid = Set(params.pid);
+	Path(id): Path<Uuid>,
+	JsonValidateWithMessage(params): JsonValidateWithMessage<QuoteParams>,
+) -> Result<Json<QuoteDto>> {
+	let mut item = Entity::find_by_pid(&ctx.db, id).await?.into_active_model();
 	item.author = Set(params.author);
 	item.text = Set(params.text);
+
 	let item = item.update(&ctx.db).await?;
 
-	Ok(Json(QuoteDto::from(item)).into_response())
+	Ok(Json(QuoteDto::from(item)))
 }
 
+// DELETE /quotes/{id}
 #[debug_handler]
-async fn remove(State(ctx): State<AppContext>, Path(id): Path<i64>) -> Result<Response> {
-	let Some(model) = Entity::find_by_id(id).one(&ctx.db).await? else {
+async fn remove(State(ctx): State<AppContext>, Path(id): Path<Uuid>) -> Result<StatusCode> {
+	let res = Entity::delete_many_by_pid(&ctx.db, id).await?;
+
+	if res == 0 {
 		return not_found();
-	};
+	}
 
-	model.into_active_model().delete(&ctx.db).await?;
-
-	Ok(StatusCode::NO_CONTENT.into_response())
+	Ok(StatusCode::NO_CONTENT)
 }
 
 pub fn routes() -> Routes {
 	Routes::new()
-		.prefix("/api/quotes")
+		.prefix("/quotes")
 		.add("/", get(list))
 		.add("/", post(create))
 		.add("/{id}", get(get_one))
