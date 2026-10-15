@@ -8,7 +8,7 @@ publish = false
 default-run = "quotes_backend-cli"
 
 [workspace.dependencies]
-loco-rs = { version = "1.2" }
+loco-rs = { version = "1.2", default-features = false, features = ["cli", "with-db", "cache_inmem"] }
 
 [dependencies]
 loco-rs = { workspace = true  }
