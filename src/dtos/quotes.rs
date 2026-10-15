@@ -1,38 +1,55 @@
+use loco_rs::model::query::PaginationQuery;
 use sea_orm::prelude::{DateTimeWithTimeZone, Uuid};
+use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct QuoteDto {
-	pub id: i64,
-	pub pid: Uuid,
+	pub id: Uuid,
 	pub author: String,
 	pub text: String,
-	pub created_at: DateTimeWithTimeZone,
-	pub updated_at: DateTimeWithTimeZone,
 }
 
 impl From<crate::models::_entities::quotes::Model> for QuoteDto {
 	fn from(m: crate::models::_entities::quotes::Model) -> Self {
 		Self {
-			id: m.id,
-			pid: m.pid,
+			id: m.pid,
 			author: m.author,
 			text: m.text,
-			created_at: m.created_at,
-			updated_at: m.updated_at,
 		}
 	}
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct CreateQuote {
-	pub pid: Uuid,
+// POST /quotes, PUT /quotes/{id}
+#[derive(Debug, Deserialize, Validate)]
+pub struct QuoteParams {
+	#[serde(default)]
+	#[validate(length(
+		min = 1,
+		max = 200,
+		message = "author cannot be empty or longer than 200 characters"
+	))]
 	pub author: String,
+	#[serde(default)]
+	#[validate(length(
+		min = 1,
+		max = 1000,
+		message = "text cannot be empty or longer than 1000 characters"
+	))]
 	pub text: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct UpdateQuote {
-	pub pid: Uuid,
-	pub author: String,
-	pub text: String,
+// GET /quotes
+#[derive(Debug, Deserialize, Validate)]
+pub struct ListParams {
+	#[validate(length(max = 200))]
+	pub author: Option<String>,
+	#[serde(flatten)]
+	pub pagination: PaginationQuery,
+}
+
+// POST /quotes
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CreatedQuoteResponse {
+	pub id: Uuid,
 }
