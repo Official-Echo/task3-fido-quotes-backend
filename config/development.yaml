@@ -45,7 +45,7 @@ workers:
 # Database Configuration
 database:
     # Database connection URI
-    uri: <%= get_env(name="DATABASE_URL", default="postgres://loco:loco@localhost:5432/quotes-backend_development") %>
+    uri: <%= get_env(name="DATABASE_URL", default="postgres://loco:loco@localhost:5432/quotes_backend_development") %>
     # When enabled, the sql query will be logged.
     enable_logging: <%= get_env(name="DB_LOGGING", default="false") %>
     # Set the timeout duration when acquiring a connection.
