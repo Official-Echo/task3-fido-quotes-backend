@@ -1,6 +1,5 @@
-pub use super::_entities::quotes::{ActiveModel, Entity, Model};
-use sea_orm::entity::prelude::*;
-use loco_rs::prelude::async_trait;
+pub use super::_entities::quotes::{ActiveModel, Column, Entity, Model};
+use loco_rs::prelude::*;
 
 pub type Quotes = Entity;
 
@@ -10,7 +9,7 @@ impl ActiveModelBehavior for ActiveModel {
 	where
 		C: ConnectionTrait,
 	{
-	let mut this = self;
+		let mut this = self;
 		if !insert {
 			this.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
 		} else {
@@ -27,4 +26,20 @@ impl Model {}
 impl ActiveModel {}
 
 // implement your custom finders, selectors oriented logic here
-impl Entity {}
+impl Entity {
+	pub async fn find_by_pid(db: &DatabaseConnection, pid: Uuid) -> Result<Model> {
+		Self::find()
+			.filter(Column::Pid.eq(pid))
+			.one(db)
+			.await?
+			.ok_or(Error::NotFound)
+	}
+	pub async fn delete_many_by_pid(db: &DatabaseConnection, pid: Uuid) -> Result<u64> {
+		let res = Self::delete_many()
+			.filter(Column::Pid.eq(pid))
+			.exec(db)
+			.await?;
+
+		Ok(res.rows_affected)
+	}
+}
