@@ -1,7 +1,48 @@
 use loco_rs::model::query::PaginationQuery;
-use sea_orm::prelude::{DateTimeWithTimeZone, Uuid};
+use sea_orm::prelude::Uuid;
 use serde::{Deserialize, Serialize};
-use validator::Validate;
+use validator::{Validate, ValidationError};
+
+const AUTHOR_MAX_LENGTH: usize = 200;
+const TEXT_MAX_LENGTH: usize = 1000;
+
+fn check_length(
+	field: &str,
+	value: &str,
+	range: std::ops::RangeInclusive<usize>,
+) -> Result<(), ValidationError> {
+	let value = value.trim();
+	let len = value.chars().count();
+
+	if len == 0 && *range.start() > 0 {
+		return Err(ValidationError::new("blank")
+			.with_message(format!("поле `{field}` не може бути порожнім").into()));
+	}
+
+	if !range.contains(&len) {
+		return Err(ValidationError::new("too_long").with_message(
+			format!(
+				"поле `{field}` не може бути довшим за {} символів",
+				range.end()
+			)
+			.into(),
+		));
+	}
+
+	Ok(())
+}
+
+fn validate_author(value: &str) -> Result<(), ValidationError> {
+	check_length("author", value, 1..=AUTHOR_MAX_LENGTH)
+}
+
+fn validate_author_filter(value: &str) -> Result<(), ValidationError> {
+	check_length("author", value, 0..=AUTHOR_MAX_LENGTH)
+}
+
+fn validate_text(value: &str) -> Result<(), ValidationError> {
+	check_length("text", value, 1..=TEXT_MAX_LENGTH)
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct QuoteDto {
@@ -24,25 +65,17 @@ impl From<crate::models::_entities::quotes::Model> for QuoteDto {
 #[derive(Debug, Deserialize, Validate)]
 pub struct QuoteParams {
 	#[serde(default)]
-	#[validate(length(
-		min = 1,
-		max = 200,
-		message = "author cannot be empty or longer than 200 characters"
-	))]
+	#[validate(custom(function = "validate_author"))]
 	pub author: String,
 	#[serde(default)]
-	#[validate(length(
-		min = 1,
-		max = 1000,
-		message = "text cannot be empty or longer than 1000 characters"
-	))]
+	#[validate(custom(function = "validate_text"))]
 	pub text: String,
 }
 
 // GET /quotes
 #[derive(Debug, Deserialize, Validate)]
 pub struct ListParams {
-	#[validate(length(max = 200))]
+	#[validate(custom(function = "validate_author_filter"))]
 	pub author: Option<String>,
 	#[serde(flatten)]
 	pub pagination: PaginationQuery,
