@@ -13,6 +13,7 @@ use loco_rs::{
 use migration::Migrator;
 use std::path::Path;
 
+use crate::models::quotes::Entity;
 #[allow(unused_imports)]
 use crate::{controllers /* models::_entities::users */};
 
@@ -58,8 +59,9 @@ impl Hooks for App {
 		// tasks-inject (do not remove)
 	}
 	async fn truncate(ctx: &AppContext) -> Result<()> {
-		Ok(())
-	}
+        truncate_table(&ctx.db, Entity).await?;
+        Ok(())
+    }
 	async fn seed(ctx: &AppContext, base: &Path) -> Result<()> {
 		Ok(())
 	}
