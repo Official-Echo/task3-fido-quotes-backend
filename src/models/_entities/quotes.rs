@@ -13,7 +13,6 @@ pub struct Model {
 	#[sea_orm(unique)]
 	pub pid: Uuid,
 	pub author: String,
-	#[sea_orm(column_type = "Text")]
 	pub text: String,
 }
 
