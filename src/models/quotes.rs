@@ -5,15 +5,15 @@ pub type Quotes = Entity;
 
 #[async_trait]
 impl ActiveModelBehavior for ActiveModel {
-	async fn before_save<C>(self, _db: &C, insert: bool) -> std::result::Result<Self, DbErr>
+	async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
 	where
 		C: ConnectionTrait,
 	{
 		let mut this = self;
-		if !insert {
-			this.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
-		} else {
+		if insert {
 			this.pid = sea_orm::ActiveValue::Set(Uuid::new_v4());
+		} else {
+			this.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
 		}
 		Ok(this)
 	}

@@ -10,7 +10,7 @@ const TEXT_MAX_LENGTH: usize = 1000;
 fn check_length(
 	field: &str,
 	value: &str,
-	range: std::ops::RangeInclusive<usize>,
+	range: core::ops::RangeInclusive<usize>,
 ) -> Result<(), ValidationError> {
 	let len = value.chars().count();
 
