@@ -104,6 +104,7 @@ async fn mass_create_update_delete() {
 	.await;
 }
 
+#[ignore = "run stress test manually with -- --ignored"]
 #[tokio::test]
 #[serial]
 async fn repeated_create_delete_cycles() {
