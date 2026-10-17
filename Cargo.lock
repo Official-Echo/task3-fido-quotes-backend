@@ -3380,6 +3380,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_trim",
  "serial_test",
  "tokio",
  "validator",
@@ -4008,6 +4009,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e7523beb55eece201a2356bee0bbca0d1ab466c14c07703b2e0ee6d42cb0c2c"
 dependencies = [
  "serde_core",
+]
+
+[[package]]
+name = "serde_trim"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70d1324d30004a76bf70a0bf2a409cf4a7f31b0c28b8c29b00e739cfe90b1e82"
+dependencies = [
+ "serde",
+ "trim-in-place",
 ]
 
 [[package]]
@@ -5042,6 +5053,12 @@ dependencies = [
  "rand 0.9.5",
  "serde",
 ]
+
+[[package]]
+name = "trim-in-place"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "daa60874b45b168f67f3f9ba1ee821ad77144d6fa19cef1cd1874a7450a948da"
 
 [[package]]
 name = "try-lock"

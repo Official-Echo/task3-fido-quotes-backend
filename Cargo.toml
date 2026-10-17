@@ -20,6 +20,7 @@ migration = { path = "migration" }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "with-chrono", "with-uuid"]}
 validator = { version = "0.20" }
 chrono = "0.4"
+serde_trim = "1.1.0"
 
 [[bin]]
 name = "quotes_backend-cli"
