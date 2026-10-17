@@ -64,6 +64,7 @@ async fn create(
 		.into_response())
 }
 
+// PUT /quotes/{id}
 #[debug_handler]
 async fn update(
 	State(ctx): State<AppContext>,
