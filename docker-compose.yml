@@ -10,13 +10,35 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - quotes-backend-pgdata:/var/lib/postgresql
+            - quotes-backend-pgdata-dev:/var/lib/postgresql
             - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U loco -d quotes_backend_development"]
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U loco -d quotes_backend_development",
+                ]
             interval: 2s
             timeout: 3s
             retries: 30
 
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: quotes-backend-app
+        restart: unless-stopped
+        depends_on:
+            db:
+                condition: service_healthy
+        command: ["start"]
+        environment:
+            LOCO_ENV: development
+            HOST: http://localhost:5150
+            BINDING: 0.0.0.0
+            DATABASE_URL: postgres://loco:loco@db:5432/quotes_backend_development
+        ports:
+            - "5150:5150"
+
 volumes:
-    quotes-backend-pgdata:
+    quotes-backend-pgdata-dev:

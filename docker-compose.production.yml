@@ -1,0 +1,39 @@
+services:
+    db:
+        image: postgres:18-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: quotes_backend_production
+        volumes:
+            - quotes-backend-pgdata-prod:/var/lib/postgresql
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U \"$$POSTGRES_USER\" -d quotes_backend_production",
+                ]
+            interval: 2s
+            timeout: 3s
+            retries: 30
+
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        depends_on:
+            db:
+                condition: service_healthy
+        command: ["start"]
+        environment:
+            LOCO_ENV: production
+            HOST: ${PROD_HOST}
+            BINDING: 0.0.0.0
+            DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/quotes_backend_production
+        ports:
+            - "5150:5150"
+
+volumes:
+    quotes-backend-pgdata-prod:
