@@ -203,3 +203,26 @@ async fn unknown_and_malformed_ids() {
 	})
 	.await;
 }
+
+#[tokio::test]
+#[serial]
+async fn multiline_text_is_accepted_but_other_control_chars_are_not() {
+	request::<App, _, _>(|request, _ctx| async move {
+		let text = "Не знаєш, що робити?\nБереш похідну і прирівнюєш до нуля.";
+		let res = request
+			.post("/quotes")
+			.json(&json!({"author": "Митник І.Ю.", "text": text}))
+			.await;
+		assert_eq!(res.status_code(), 201);
+		let id = res.json::<Value>()["id"].as_str().unwrap().to_string();
+		let stored = request.get(&format!("/quotes/{id}")).await.json::<Value>();
+		assert_eq!(stored["text"], text);
+
+		let res = request
+			.post("/quotes")
+			.json(&json!({"author": "ok", "text": "bad\u{0}char"}))
+			.await;
+		assert_eq!(res.status_code(), 400);
+	})
+	.await;
+}
