@@ -1,6 +1,7 @@
 use loco_rs::model::query::PaginationQuery;
 use sea_orm::prelude::Uuid;
 use serde::{Deserialize, Serialize};
+use serde_trim::{option_string_trim, string_trim};
 use validator::{Validate, ValidationError};
 
 const AUTHOR_MAX_LENGTH: usize = 200;
@@ -11,7 +12,6 @@ fn check_length(
 	value: &str,
 	range: std::ops::RangeInclusive<usize>,
 ) -> Result<(), ValidationError> {
-	let value = value.trim();
 	let len = value.chars().count();
 
 	if len == 0 && *range.start() > 0 {
@@ -64,10 +64,10 @@ impl From<crate::models::_entities::quotes::Model> for QuoteDto {
 // POST /quotes, PUT /quotes/{id}
 #[derive(Debug, Deserialize, Validate)]
 pub struct QuoteParams {
-	#[serde(default)]
+	#[serde(default, deserialize_with = "string_trim")]
 	#[validate(custom(function = "validate_author"))]
 	pub author: String,
-	#[serde(default)]
+	#[serde(default, deserialize_with = "string_trim")]
 	#[validate(custom(function = "validate_text"))]
 	pub text: String,
 }
@@ -75,6 +75,7 @@ pub struct QuoteParams {
 // GET /quotes
 #[derive(Debug, Deserialize, Validate)]
 pub struct ListParams {
+	#[serde(default, deserialize_with = "option_string_trim")]
 	#[validate(custom(function = "validate_author_filter"))]
 	pub author: Option<String>,
 	#[serde(flatten)]
