@@ -1,0 +1,634 @@
+{
+    "info": {
+        "name": "Quotes backend",
+        "description": "Run using the Collection runner.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Happy path",
+            "item": [
+                {
+                    "name": "Ping",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/_ping",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["_ping"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"Server is up\", () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create quote",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"Бублик В. В.\",\n  \"text\": \"Можна все; якщо не заборонено — можна.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"id is a UUID\", () => pm.expect(json.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));",
+                                    "pm.collectionVariables.set(\"quoteId\", json.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get quote by id",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/{{quoteId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes", "{{quoteId}}"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                                    "pm.test(\"returns exactly id, author and text\", () => pm.expect(pm.response.json()).to.eql({",
+                                    "    id: pm.collectionVariables.get(\"quoteId\"),",
+                                    "    author: \"Бублик В. В.\",",
+                                    "    text: \"Можна все; якщо не заборонено — можна.\"",
+                                    "}));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List quotes by author (paginated)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes?author=Бублик В. В.&page=1&page_size=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"],
+                            "query": [
+                                {
+                                    "key": "author",
+                                    "value": "Бублик В. В."
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "page_size",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"page metadata is present\", () => {",
+                                    "    pm.expect(json.page).to.eql(1);",
+                                    "    pm.expect(json.page_size).to.eql(10);",
+                                    "    pm.expect(json).to.have.keys(\"items\", \"page\", \"page_size\", \"total_pages\", \"total_items\");",
+                                    "});",
+                                    "pm.test(\"only the requested author is returned\", () => {",
+                                    "    pm.expect(json.items).to.be.an(\"array\").that.is.not.empty;",
+                                    "    json.items.forEach(q => pm.expect(q.author).to.eql(\"Бублик В. В.\"));",
+                                    "});",
+                                    "pm.test(\"created quote is on the page\", () => pm.expect(json.items.map(q => q.id)).to.include(pm.collectionVariables.get(\"quoteId\")));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update quote",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/{{quoteId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes", "{{quoteId}}"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"Радзієвська О. В.\",\n  \"text\": \"Не чіпайте, то не ваш .gitignore.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"id is unchanged\", () => pm.expect(json.id).to.eql(pm.collectionVariables.get(\"quoteId\")));",
+                                    "pm.test(\"author and text are replaced\", () => {",
+                                    "    pm.expect(json.author).to.eql(\"Радзієвська О. В.\");",
+                                    "    pm.expect(json.text).to.eql(\"Не чіпайте, то не ваш .gitignore.\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "2. Validation and errors",
+            "item": [
+                {
+                    "name": "Create: empty author",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"\",\n  \"text\": \"Аншланг\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"body has an errors object\", () => pm.expect(json.errors).to.be.an(\"object\"));",
+                                    "pm.test(\"error is reported for `author`\", () => pm.expect(json.errors).to.have.property(\"author\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create: whitespace-only text",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"Сергій Медвідь\",\n  \"text\": \"   \"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"body has an errors object\", () => pm.expect(json.errors).to.be.an(\"object\"));",
+                                    "pm.test(\"error is reported for `text`\", () => pm.expect(json.errors).to.have.property(\"text\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create: missing text field",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"Сергій Медвідь\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"body has an errors object\", () => pm.expect(json.errors).to.be.an(\"object\"));",
+                                    "pm.test(\"error is reported for `text`\", () => pm.expect(json.errors).to.have.property(\"text\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create: author longer than 200",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"{{longAuthor}}\",\n  \"text\": \"Чому мене ніхто не цитує в цитатах ФІ?\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.variables.set(\"longAuthor\", \"а\".repeat(201));"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"body has an errors object\", () => pm.expect(json.errors).to.be.an(\"object\"));",
+                                    "pm.test(\"error is reported for `author`\", () => pm.expect(json.errors).to.have.property(\"author\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create: text longer than 1000",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"Андрій Макарець\",\n  \"text\": \"{{longText}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.variables.set(\"longText\", \"ж\".repeat(1001));"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"body has an errors object\", () => pm.expect(json.errors).to.be.an(\"object\"));",
+                                    "pm.test(\"error is reported for `text`\", () => pm.expect(json.errors).to.have.property(\"text\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update: invalid body is rejected",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/{{quoteId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes", "{{quoteId}}"]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"author\": \"\",\n  \"text\": \"Аншланг\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"body has an errors object\", () => pm.expect(json.errors).to.be.an(\"object\"));",
+                                    "pm.test(\"error is reported for `author`\", () => pm.expect(json.errors).to.have.property(\"author\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List: author filter longer than 200",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes?author={{longAuthor}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes"],
+                            "query": [
+                                {
+                                    "key": "author",
+                                    "value": "{{longAuthor}}"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.variables.set(\"longAuthor\", \"а\".repeat(201));"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                                    "const json = pm.response.json();",
+                                    "pm.test(\"body has an errors object\", () => pm.expect(json.errors).to.be.an(\"object\"));",
+                                    "pm.test(\"error is reported for `author`\", () => pm.expect(json.errors).to.have.property(\"author\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get: malformed id",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/not-a-uuid",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes", "not-a-uuid"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get: unknown id",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/00000000-0000-0000-0000-000000000000",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "quotes",
+                                "00000000-0000-0000-0000-000000000000"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "3. Cleanup",
+            "item": [
+                {
+                    "name": "Delete quote",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/{{quoteId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes", "{{quoteId}}"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));",
+                                    "pm.test(\"body is empty\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get deleted quote",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/{{quoteId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes", "{{quoteId}}"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete again",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/quotes/{{quoteId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["quotes", "{{quoteId}}"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:5150"
+        },
+        {
+            "key": "quoteId",
+            "value": ""
+        }
+    ]
+}

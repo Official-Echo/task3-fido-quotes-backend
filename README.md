@@ -162,3 +162,5 @@ docker compose exec db psql -U loco -c "CREATE DATABASE quotes_backend_test;"
 ```bash
 cargo test -- --ignored
 ```
+
+Додатково, було створено колекцію Postman у файлі quotes-backend.postman_collection.json на 17 запитів та 39 тестів. Для її запуску переконайтеся, що сервер працює, й виконайте колекцію через Collection runner
