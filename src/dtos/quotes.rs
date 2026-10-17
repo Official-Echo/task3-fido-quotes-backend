@@ -14,6 +14,11 @@ fn check_length(
 ) -> Result<(), ValidationError> {
 	let len = value.chars().count();
 
+	if value.chars().any(|c| c.is_control()) {
+		return Err(ValidationError::new("invalid_chars")
+			.with_message(format!("поле `{field}` містить недопустимі символи").into()));
+	}
+
 	if len == 0 && *range.start() > 0 {
 		return Err(ValidationError::new("blank")
 			.with_message(format!("поле `{field}` не може бути порожнім").into()));
