@@ -13,7 +13,6 @@ loco-rs = { version = "1.2", default-features = false, features = ["cli", "with-
 [dependencies]
 loco-rs = { workspace = true  }
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1" }
 tokio = { version = "1.45", default-features = false, features = ["rt-multi-thread"] }
 axum = "0.8"
 migration = { path = "migration" }
@@ -34,3 +33,4 @@ required-features = []
 [dev-dependencies]
 loco-rs = { workspace = true, features = ["testing"] }
 serial_test = { version = "3.1.1" }
+serde_json = { version = "1" }
