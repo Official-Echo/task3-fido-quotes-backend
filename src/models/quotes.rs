@@ -27,14 +27,21 @@ impl ActiveModel {}
 
 // implement your custom finders, selectors oriented logic here
 impl Entity {
-	pub async fn find_by_pid(db: &DatabaseConnection, pid: Uuid) -> Result<Model> {
+	pub async fn find_by_pid<C>(db: &C, pid: Uuid) -> Result<Model>
+	where
+		C: ConnectionTrait,
+	{
 		Self::find()
 			.filter(Column::Pid.eq(pid))
 			.one(db)
 			.await?
 			.ok_or(Error::NotFound)
 	}
-	pub async fn delete_many_by_pid(db: &DatabaseConnection, pid: Uuid) -> Result<u64> {
+
+	pub async fn delete_many_by_pid<C>(db: &C, pid: Uuid) -> Result<u64>
+	where
+		C: ConnectionTrait,
+	{
 		let res = Self::delete_many()
 			.filter(Column::Pid.eq(pid))
 			.exec(db)

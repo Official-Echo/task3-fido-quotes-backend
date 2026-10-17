@@ -1,5 +1,6 @@
 #![allow(clippy::unused_async)]
 use axum::http::StatusCode;
+use chrono::{DateTime, FixedOffset};
 use loco_rs::{controller::extractor::validate::QueryValidateWithMessage, prelude::*};
 
 use crate::{
@@ -71,13 +72,21 @@ async fn update(
 	Path(id): Path<Uuid>,
 	JsonValidateWithMessage(params): JsonValidateWithMessage<QuoteParams>,
 ) -> Result<Json<QuoteDto>> {
-	let mut item = Entity::find_by_pid(&ctx.db, id).await?.into_active_model();
-	item.author = Set(params.author);
-	item.text = Set(params.text);
+	let res = Entity::update_many()
+		.col_expr(Column::Author, Expr::value(params.author))
+		.col_expr(Column::Text, Expr::value(params.text))
+		.col_expr(
+			Column::UpdatedAt,
+			Expr::value(DateTime::<FixedOffset>::from(chrono::Utc::now())),
+		)
+		.filter(Column::Pid.eq(id))
+		.exec_with_returning(&ctx.db)
+		.await?;
 
-	let item = item.update(&ctx.db).await?;
-
-	Ok(Json(QuoteDto::from(item)))
+	match res.into_iter().next() {
+		Some(model) => Ok(Json(QuoteDto::from(model))),
+		None => not_found(),
+	}
 }
 
 // DELETE /quotes/{id}
