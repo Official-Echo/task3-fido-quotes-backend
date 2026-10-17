@@ -54,8 +54,8 @@ docker exec -it quotes-backend-db pg_isready -U loco
 1. Завантажте репозиторій:
 
     ```bash
-    git clone <адреса репозиторію>
-    cd <назва репозиторію>
+    git clone https://github.com/Official-Echo/task3-fido-quotes-backend
+    cd task3-fido-quotes-backend
     ```
 
 2. Запустіть базу даних:
