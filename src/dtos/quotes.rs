@@ -14,7 +14,10 @@ fn check_length(
 ) -> Result<(), ValidationError> {
 	let len = value.chars().count();
 
-	if value.chars().any(|c| c.is_control()) {
+	if value
+		.chars()
+		.any(|c| c.is_control() && !matches!(c, '\n' | '\r' | '\t'))
+	{
 		return Err(ValidationError::new("invalid_chars")
 			.with_message(format!("поле `{field}` містить недопустимі символи").into()));
 	}
